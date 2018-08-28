@@ -87,8 +87,20 @@ add_action( 'widgets_init', function(){
             Graphic
           </option> 
         </select>                
-    </p><?php 
-  }
+    </p>
+    <?php 
+      $width = ! empty( $instance['width'] ) ? $instance['width'] : ''; ?>
+      <p>
+        <label for="<?php echo $this->get_field_id( 'width' ); ?>">Width:</label>
+        <input type="text" id="<?php echo $this->get_field_id( 'width' ); ?>" name="<?php echo $this->get_field_name( 'width' ); ?>" value="<?php echo esc_attr( $width ); ?>" />px
+      </p>
+    <?php
+      $height = ! empty( $instance['height'] ) ? $instance['height'] : ''; ?>
+      <p>
+        <label for="<?php echo $this->get_field_id( 'height' ); ?>">Height:</label>
+        <input type="text" id="<?php echo $this->get_field_id( 'height' ); ?>" name="<?php echo $this->get_field_name( 'height' ); ?>" value="<?php echo esc_attr( $height ); ?>" />px
+      </p>
+    <?php }
 
 	// save options
 	public function update( $new_instance, $old_instance ) {
@@ -97,6 +109,8 @@ add_action( 'widgets_init', function(){
     $instance[ 'event_type_id' ] = strip_tags( $new_instance[ 'event_type_id' ] );
     $instance[ 'event_year' ] = strip_tags( $new_instance[ 'event_year' ] );
     $instance[ 'style' ] = strip_tags( $new_instance[ 'style' ] );
+    $instance[ 'width' ] = strip_tags( $new_instance[ 'width' ] );
+    $instance[ 'height' ] = strip_tags( $new_instance[ 'height' ] );
     return $instance;
   }
 }
@@ -113,6 +127,8 @@ function wpcivicrmuserstats_widget_shortcode( $atts ) {
       'event_type_id'  => '',
       'event_year' => '',
       'style' => '',
+      'width' => '',
+      'height' => '',
     ), 
     $atts 
   ));
@@ -170,16 +186,35 @@ function wpcivicrmuserstats_widget_data($instance) {
   // execute query
   $dao = CRM_Core_DAO::executeQuery($query);
   $count = $dao->N;
+  if ( !empty($instance['style']) && $instance['style'] == 'graphic') {
+    $block_width = '';
+    $block_height = '';
+    if(!empty($instance['width']) && !empty($instance['height'])){
+      $block_width = $instance['width'];
+      $block_height = $instance['height'];
+    }
+    $row_image_count = ceil($block_width/23);
+    $total_row_printable = ceil($count/$row_image_count);
+    $expected_rows_in_box = $block_height/50;
+    if($total_row_printable > $expected_rows_in_box){
+      $dynamic_width = floor($block_width/($total_row_printable+$row_image_count))-2;
+      $image = '<img src="' . plugins_url( 'images/person.png', __FILE__ ) . '" height="35" width="'.$dynamic_width.'" > ';
+    }else{
+      $image = '<img src="' . plugins_url( 'images/person.png', __FILE__ ) . '" height="40" width="20" > ';
+    }
+    $result = '<div class="wpcivicrmuserstats-widget-data-content" style="width: '.$block_width.'px; height: '.$block_height.'px;" >';
+  }else{
+    $result = '<div class="wpcivicrmuserstats-widget-data-content">';
+  }
   
-  $result = '';
-  $image = '<img src="' . plugins_url( 'images/person.png', __FILE__ ) . '" height="10" width="20" > ';
   if ( !empty($instance['style']) && $instance['style'] == 'graphic') {
     for($i=1; $i<= $count; $i++){
       $result .= $image;
     }
   }
   else{
-    $result = $count;
+    $result .= $count;
   }
-  echo 'user stats '.$result; 
+  $result .= '</div>';
+  echo $result; 
 }
