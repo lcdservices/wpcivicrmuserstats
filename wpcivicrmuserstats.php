@@ -1,10 +1,10 @@
 <?php
 /*
-Plugin Name: Civicrm User Stats
+Plugin Name: CiviCRM User Stats
 Plugin URI: https://github.com/lcdservices/wpcivicrmuserstats
-Description: The Civicrm User Stats plugin displays number of users attached to event of organsisation for the current user.
-Version: 1.2
-Author: LCD Services
+Description: The CiviCRM User Stats plugin displays various stats for the logged in user.
+Version: 1.0
+Author: Lighthouse Consulting and Design, Inc.
 Author URI: http://www.lcdservices.biz/
 */
 
@@ -174,15 +174,28 @@ function wpcivicrmuserstats_widget_data($instance) {
   
   if ( !empty($instance['event_type_id']) ) {
     $event_id = $instance['event_type_id'];
-    $clauses[] = "civicrm_event.id IN ($event_id)";
+    $clauses[] = "civicrm_event.event_type_id IN ($event_id)";
   }
   if ( !empty($instance['event_year']) ) {
     $date = $instance['event_year'];
-    $clauses[] = "DATE_FORMAT(civicrm_event.start_date, '%Y') <= $date AND DATE_FORMAT(civicrm_event.end_date, '%Y') >= $date";
+    $clauses[] = "
+      (
+        (DATE_FORMAT(civicrm_event.start_date, '%Y') <= $date AND DATE_FORMAT(civicrm_event.end_date, '%Y') >= $date) OR
+        (DATE_FORMAT(civicrm_event.start_date, '%Y') = $date AND civicrm_event.end_date IS NULL)
+      )
+    ";
   }
   
   $whereClause = !empty($clauses) ? implode(' AND ', $clauses) : '(1)';
-  $query = "SELECT civicrm_participant.id FROM civicrm_participant INNER JOIN civicrm_event ON civicrm_participant.event_id = civicrm_event.id WHERE $whereClause";
+  $query = "
+    SELECT civicrm_participant.id
+    FROM civicrm_participant
+    INNER JOIN civicrm_event
+      ON civicrm_participant.event_id = civicrm_event.id
+    WHERE $whereClause
+  ";
+  //Civi::log()->debug('', array('query' => $query));
+
   // execute query
   $dao = CRM_Core_DAO::executeQuery($query);
   $count = $dao->N;
